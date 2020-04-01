@@ -6,7 +6,7 @@ import java.awt.event.ActionListener;
 
 import javax.swing.Timer;
 
-import geometry.GoalSeekingRabbit;
+import geometry.Rabbit;
 import globals.Globals;
 
 public class Game {
@@ -15,12 +15,12 @@ public class Game {
 
 	private long time;
 
-	private GoalSeekingRabbit goalRabbit;
+	private Rabbit goalRabbit;
 
 	public Game(Window window) {
 		this.window = window;
 
-		goalRabbit = new GoalSeekingRabbit();
+		goalRabbit = new Rabbit();
 
 		time = System.currentTimeMillis();
 		timer = new Timer(1000 / Globals.FRAME_RATE, new FrameListener());
