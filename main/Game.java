@@ -3,9 +3,11 @@ package main;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Vector;
 
 import javax.swing.Timer;
 
+import geometry.GoalSeekingRobot;
 import geometry.Rabbit;
 import globals.Globals;
 
@@ -15,12 +17,14 @@ public class Game {
 
 	private long time;
 
-	private Rabbit goalRabbit;
+	private Vector<GoalSeekingRobot> agents;
 
 	public Game(Window window) {
 		this.window = window;
 
-		goalRabbit = new Rabbit();
+		agents = new Vector<GoalSeekingRobot>();
+		agents.add(new Rabbit());
+		// add more agents here
 
 		time = System.currentTimeMillis();
 		timer = new Timer(1000 / Globals.FRAME_RATE, new FrameListener());
@@ -29,13 +33,18 @@ public class Game {
 
 	// updates all of the elements of the game
 	public void update(long millis) {
-		goalRabbit.update(millis);
+		for (GoalSeekingRobot agent : agents) {
+			agent.update(millis);
+		}
 	}
 
+	// draws all of the game elements
 	public void draw(Graphics g) {
 		g.clearRect(0, 0, Globals.PAGE_WIDTH, Globals.PAGE_HEIGHT);
-
-		goalRabbit.draw(g);
+		
+		for (GoalSeekingRobot agent : agents) {
+			agent.draw(g);
+		}
 	}
 
 	// class to contain listener for each frame
