@@ -11,7 +11,6 @@ import globals.Vector2;
 public class Muscle implements GameElement {
 
 	public static final double CONVERGENCE_RATE = 1.0;
-	public static final double TENSION_RATE = 0.02;
 	public static final double MAX_TENSION = 5.0;
 	public static final double MIN_TENSION = 0.1;
 
@@ -36,9 +35,10 @@ public class Muscle implements GameElement {
 		setTension(tension);
 	}
 
-	// adds or subtracts tension, based on 
-	public void multTension(double toMult) {
-		setTension(desiredTension * Math.pow(toMult, TENSION_RATE)); // scales down the tension
+	// changes the tension by a certain amount
+	// negative numbers decrease the tension, positive numbers increase it
+	public void alterTension(double change) {
+		setTension(desiredTension + change);
 	}
 
 	// sets the tension that the muscle seeks for

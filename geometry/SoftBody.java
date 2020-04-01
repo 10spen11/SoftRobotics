@@ -29,13 +29,22 @@ public class SoftBody extends Polygon {
 	}
 	
 	// adds a muscle to the system
-	public void addMuscle(IndexedMuscle muscle) {
+	public IndexedMuscle addMuscle(IndexedMuscle muscle) {
+		
+		int[] indices = muscle.getIndices();
+		for (int i = 0; i < muscles.size(); i++) {
+			int[] tempIndices = muscles.elementAt(i).getIndices();
+			if (indices[0] == tempIndices[0] && indices[1] == tempIndices[1]) {
+				return null; // the muscle already exists!
+			}
+		}
 		muscles.add(muscle);
+		return muscle;
 	}
 	
 	// adds a muscle to the system based on the indexes of the points to act upon and the tension
-	public void addMuscle(int p1, int p2, double d) {
-		muscles.add(new IndexedMuscle(this, p1, p2, d));
+	public IndexedMuscle addMuscle(int p1, int p2, double d) {
+		return addMuscle(new IndexedMuscle(this, p1, p2, d));
 	}
 
 	// updates the SoftBody

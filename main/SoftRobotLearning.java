@@ -8,7 +8,7 @@ public class SoftRobotLearning
 {
 	public static void main(String[] args)
 	{
-		JFrame frame = new JFrame("Magestic");
+		JFrame frame = new JFrame("Soft Robot Learning");
 		
 		Window panel = new Window();
 		frame.getContentPane().add(panel);

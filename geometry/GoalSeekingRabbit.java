@@ -6,13 +6,17 @@ import java.awt.Graphics;
 import java.util.Vector;
 
 import globals.Vector2;
+import globals.Globals;
 
 public class GoalSeekingRabbit extends Rabbit {
 
+	public static final double STARTING_LEARNING_RATE = Globals.EPSILON;
+	
 	protected SoftBody goal;
 	protected long timeElapsed = 0;
 	protected int nextUpdateTime = 1000;
 	protected int iterationCount = 0;
+	public double learningRate = STARTING_LEARNING_RATE;
 
 	public GoalSeekingRabbit() {
 		super(true);
@@ -32,6 +36,8 @@ public class GoalSeekingRabbit extends Rabbit {
 		for (int i = 0; i < muscles.size(); i++) {
 			muscles.elementAt(i).resetTension();
 		}
+		
+		learningRate = STARTING_LEARNING_RATE;
 	}
 
 	// adds and returns a muscle that is predicted to help the most
@@ -58,13 +64,31 @@ public class GoalSeekingRabbit extends Rabbit {
 
 		// if there's a helpful muscle, add it
 		if (bestMuscle != null) {
-			addMuscle(bestMuscle);
+			return addMuscle(bestMuscle);
+		} else {
+			return bestMuscle;
 		}
-		return bestMuscle;
+		
 	}
 
 	// rates how helpful it would be to add a muscle with the given indices
 	private double rateMuscleHelpfulness(int i, int j) {
+
+		/*
+		GoalSeekingRabbit rabbit = this.cloneMuscleless();
+		rabbit.addMuscle(i, j, 1.0);
+		IndexedMuscle muscle = rabbit.muscles.elementAt(0);
+		return Math.abs(getTensionModifier(muscle));
+		*/
+
+		// checks all muscles to see if this one already exists
+		for (int k = 0; k < muscles.size(); k++) {
+			int[] tempIndices = muscles.elementAt(k).getIndices();
+			if (i == tempIndices[0] && j == tempIndices[1]) {
+				return 0; // the muscle already exists, so adding it would be useless
+			}
+		}
+		
 		Vector2 muscleMovement = points[i].sub(points[j]);
 		Vector2 toGoal1, toGoal2;
 
@@ -78,28 +102,49 @@ public class GoalSeekingRabbit extends Rabbit {
 		// if the best muscle movement for each are in opposite directions,
 		// then the muscle would be helpful
 		return -toGoal1.dot(toGoal2);
+		
 	}
 	
 	// gets the tension that a given muscle should add next
-	private double getTensionMultiplier(IndexedMuscle muscle) {
-		Vector2 muscleLine = muscle.difference();
+	private double getTensionModifier(IndexedMuscle muscle) {
+		
+		// simulates the muscle system
+		// slightly disturbs the muscle, extending it
 		int[] indices = muscle.getIndices();
+		GoalSeekingRabbit rabbit = this.cloneMuscleless();
+		// simulates increasing muscle extension by small amount
+		rabbit.addMuscle(indices[0], indices[1], 1.0);
+		rabbit.muscles.elementAt(0).alterTension(Globals.EPSILON);
+		rabbit.muscles.elementAt(0).update(1); // makes the muscle extend
 		
-		// project the target line to see the best possible muscle tension
-		Vector2 goalDifference = goal.points[indices[1]].sub(goal.points[indices[0]]);
-		goalDifference = goalDifference.projection(muscleLine);
+		// compares the affect of extending the muscle slightly with doing nothing
+		double costDifference = rabbit.cost() - cost(); // compares costs
+		double slope = costDifference / Globals.EPSILON;
 		
-		double desiredScaling = goalDifference.mag() / muscleLine.mag();
-		
-		return desiredScaling; // TODO
+		// go the opposite direction of increasing cost
+		return -slope * learningRate;
 	}
 
-	private double fitness() {
+	private double cost() {
 		double sum = 0;
 		for (int i = 0; i < points.length; i++) {
 			sum += goal.points[i].sub(points[i]).mag();
 		}
 		return sum;
+	}
+	
+	// clones the GoalSeekingRabbit
+	// without copying the muscles
+	public GoalSeekingRabbit cloneMuscleless() {
+		
+		GoalSeekingRabbit rabbit = new GoalSeekingRabbit();
+		for (int i = 0; i < rabbit.points.length; i++) { // coppies the rabbit points
+			rabbit.points[i].copy(points[i]);
+		}
+		for (int i = 0; i < rabbit.goal.points.length; i++) { // coppies the goal points
+			rabbit.goal.points[i].copy(goal.points[i]);
+		}
+		return rabbit;
 	}
 
 	@Override
@@ -111,17 +156,20 @@ public class GoalSeekingRabbit extends Rabbit {
 		g.setColor(Color.black);
 		g.setFont(new Font("Consolas", Font.PLAIN, 20));
 		g.drawString("Iteration: " + iterationCount, 90, 350);
-		String costString = String.format("Cost: %.2f", fitness());
+		String costString = String.format("Cost: %.2f", cost());
 		g.drawString(costString , 90, 380);
 	}
 
 	@Override
 	public void update(long millis) {
 
+		
+		double priorCost = cost();
+		
 		// updates the muscles with respect to the goal
 		for (int i = 0; i < muscles.size(); i++) {
 			IndexedMuscle muscle = muscles.elementAt(i);
-			muscle.multTension(getTensionMultiplier(muscle));
+			muscle.alterTension(getTensionModifier(muscle));
 		}
 		
 		// records time passed
@@ -130,7 +178,7 @@ public class GoalSeekingRabbit extends Rabbit {
 		// periodically resets muscles, and adds a new one
 		if (timeElapsed > nextUpdateTime) {
 			timeElapsed -= nextUpdateTime;
-			nextUpdateTime += 100;
+			nextUpdateTime += 50;
 			iterationCount++;
 			
 			if (addNextMuscle() == null) {
@@ -141,8 +189,17 @@ public class GoalSeekingRabbit extends Rabbit {
 		}
 		
 		super.update(millis);
+		
 		// updates the goal
 		goal.update(millis);
+		
+		// checks how the costs compare, to see how to adapt the learning rate
+		double updatedCost = cost();
+		if (priorCost > updatedCost) { // adapt the learning rate
+			learningRate *= 1.2;
+		} else {
+			learningRate *= 0.5;
+		}
 	}
 
 }
