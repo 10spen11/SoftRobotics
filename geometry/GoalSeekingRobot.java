@@ -16,23 +16,27 @@ public class GoalSeekingRobot extends SoftBody {
 	protected static Color agentColor = new Color(0, 0, 255, 180);
 	protected static Color goalColor = new Color(0, 155, 0, 180);
 
-	public static final int SEED = 2;
-	private static Random rand = new Random(SEED);
-
+	private int seed;
 	private Vector<Vector2> goalPoints;
+	private Vector2 offset;
 	private SoftBody goal;
 	private long timeElapsed = 0;
 	private int nextUpdateTime = 1000;
 	private int iterationCount = 0;
 	private double learningRate = STARTING_LEARNING_RATE;
 
-	public GoalSeekingRobot(Vector<Vector2> goalPoints) {
-		super(getStartingPoints(goalPoints), agentColor);
-
+	public GoalSeekingRobot(Vector<Vector2> goalPoints, Vector2 offset, int seed) {
+		super(getStartingPoints(goalPoints, offset, new Random(seed)), agentColor);
+		
+		this.offset = offset.clone(); 
+		this.seed = seed;
+		
 		// records the starting goal points for future use
 		this.goalPoints = new Vector<Vector2>();
 		for (int i = 0; i < goalPoints.size(); i++) {
-			this.goalPoints.add(goalPoints.elementAt(i).clone());
+			// add the goal points
+			Vector2 point = goalPoints.elementAt(i).clone();
+			this.goalPoints.add(point); // recorded without offset
 		}
 
 		goal = new SoftBody(getGoalPoints(), goalColor);
@@ -44,19 +48,19 @@ public class GoalSeekingRobot extends SoftBody {
 		Vector<Vector2> wantedGoalPoints = new Vector<Vector2>();
 
 		for (int i = 0; i < goalPoints.size(); i++) {
-			wantedGoalPoints.add(goalPoints.elementAt(i).clone());
+			wantedGoalPoints.add(goalPoints.elementAt(i).add(offset));
 		}
 		return wantedGoalPoints;
 	}
 
 	// gets the staring points based on the given goal points
-	protected static Vector<Vector2> getStartingPoints(Vector<Vector2> goalPoints) {
-
-		rand.setSeed(SEED);
+	protected static Vector<Vector2> getStartingPoints(Vector<Vector2> goalPoints, Vector2 offset, Random rand) {
+		
 		Vector<Vector2> points = new Vector<Vector2>();
 		for (int i = 0; i < goalPoints.size(); i++) {
 			// adds randomness to the goal points
-			Vector2 randAdded = goalPoints.elementAt(i).add(randomVector());
+			Vector2 randAdded = goalPoints.elementAt(i).add(randomVector(rand));
+			randAdded.plusEquals(offset);
 			points.add(randAdded);
 		}
 
@@ -64,7 +68,7 @@ public class GoalSeekingRobot extends SoftBody {
 	}
 
 	// returns a vector with randomess added from the default values provided
-	protected static final Vector2 randomVector() {
+	protected static final Vector2 randomVector(Random rand) {
 		return new Vector2(rand.nextDouble() * VARIATION - VARIATION / 2,
 				rand.nextDouble() * VARIATION - VARIATION / 2);
 	}
@@ -73,7 +77,7 @@ public class GoalSeekingRobot extends SoftBody {
 	public void reset() {
 
 		// resets the points of the robot
-		Vector<Vector2> resetPoints = getStartingPoints(goalPoints);
+		Vector<Vector2> resetPoints = getStartingPoints(goalPoints, offset, new Random(seed));
 		for (int i = 0; i < points.length; i++) {
 			points[i].copy(resetPoints.elementAt(i));
 		}
@@ -91,7 +95,7 @@ public class GoalSeekingRobot extends SoftBody {
 	public GoalSeekingRobot cloneMuscleless() {
 
 		GoalSeekingRobot robot;
-		robot = new GoalSeekingRobot(goalPoints);
+		robot = new GoalSeekingRobot(goalPoints, offset, seed);
 
 		robot.points = new Vector2[points.length];
 		for (int i = 0; i < robot.points.length; i++) { // coppies the agent's points
@@ -101,7 +105,7 @@ public class GoalSeekingRobot extends SoftBody {
 		for (int i = 0; i < robot.goal.points.length; i++) { // coppies the goal points
 			robot.goal.points[i] = goal.points[i].clone();
 		}
-		robot.muscles = new Vector<IndexedMuscle>();
+
 		return robot;
 	}
 
@@ -135,10 +139,18 @@ public class GoalSeekingRobot extends SoftBody {
 		}
 
 	}
+	
+	// rates how helpful a muscle is expected to be
 
 	// rates how helpful it would be to add a muscle with the given indices
 	private double rateMuscleHelpfulness(int i, int j) {
 
+		/*
+		GoalSeekingRobot robot = cloneMuscleless();
+		robot.addMuscle(i, j, 1.0);
+		return getTensionModifier(robot.muscles.elementAt(0));
+		*/
+		
 		// checks all muscles to see if this one already exists
 		for (int k = 0; k < muscles.size(); k++) {
 			int[] tempIndices = muscles.elementAt(k).getIndices();
@@ -160,6 +172,7 @@ public class GoalSeekingRobot extends SoftBody {
 		// if the best muscle movement for each are in opposite directions,
 		// then the muscle would be helpful
 		return -toGoal1.dot(toGoal2);
+		
 
 	}
 
@@ -201,9 +214,9 @@ public class GoalSeekingRobot extends SoftBody {
 
 		g.setColor(Color.black);
 		g.setFont(new Font("Consolas", Font.PLAIN, 20));
-		g.drawString("Iteration: " + iterationCount, 90, 350);
+		g.drawString("Iteration: " + iterationCount, (int) (90 + offset.x), (int) (350 + offset.y));
 		String costString = String.format("Cost: %.2f", cost());
-		g.drawString(costString, 90, 380);
+		g.drawString(costString, (int) (90 + offset.x), (int) (380 + offset.y));
 	}
 
 	@Override

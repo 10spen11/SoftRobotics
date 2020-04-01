@@ -6,8 +6,8 @@ import globals.Vector2;
 
 public class Rabbit extends GoalSeekingRobot {
 
-	public Rabbit() {
-		super(getRabbitPoints());
+	public Rabbit(Vector2 offset, int seed) {
+		super(getRabbitPoints(), offset, seed);
 	}
 
 	protected static Vector<Vector2> getRabbitPoints() {

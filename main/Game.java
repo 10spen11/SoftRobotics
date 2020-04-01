@@ -10,6 +10,7 @@ import javax.swing.Timer;
 import geometry.GoalSeekingRobot;
 import geometry.Rabbit;
 import globals.Globals;
+import globals.Vector2;
 
 public class Game {
 	private Timer timer;
@@ -23,7 +24,8 @@ public class Game {
 		this.window = window;
 
 		agents = new Vector<GoalSeekingRobot>();
-		agents.add(new Rabbit());
+		agents.add(new Rabbit(new Vector2(0, 0), 0));
+		agents.add(new Rabbit(new Vector2(300, 0), 2));
 		// add more agents here
 
 		time = System.currentTimeMillis();
